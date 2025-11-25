@@ -8,6 +8,8 @@ import { useCurrenciesList } from './use-currencies-list'
 import { Button } from '@/components/button'
 import { useConvertCurrency } from './use-convert-currency'
 
+const showMaxHistoryItems = 5
+
 const parseAmount = (value: string) => {
   return value
     .replace(/[^0-9.]/g, '')
@@ -54,12 +56,21 @@ const defaultState = {
   amount: ''
 }
 
+type HistoryType = {
+  from: string
+  to: string
+  amount: string
+  convertedAmount: string
+  createdAt: Date
+}
+
 export const CurrencyConverter = () => {
   const { data: currencies, isError: isCurrenciesError } = useCurrenciesList()
   const { mutateAsync: convertCurrency, isPending, isError: isConvertError } = useConvertCurrency()
 
   const [fromCurrency, setFromCurrency] = useState(defaultState)
   const [toCurrency, setToCurrency] = useState(defaultState)
+  const [history, setHistory] = useState<HistoryType[]>([])
 
   const fieldsValid = !!fromCurrency.code
     && fromCurrency.amount.length > 0
@@ -108,6 +119,14 @@ export const CurrencyConverter = () => {
       toCurrency.code === result.to
     ) {
       handleToAmountChange(result.value.toFixed(2))
+      const newItem = {
+        from: fromCurrency.code,
+        to: toCurrency.code,
+        amount: fromCurrency.amount,
+        convertedAmount: result.value.toFixed(2),
+        createdAt: new Date()
+      }
+      setHistory(history => [...[newItem, ...history].slice(0, showMaxHistoryItems)])
     }
   }
 
@@ -142,6 +161,14 @@ export const CurrencyConverter = () => {
 
       {isCurrenciesError && <p className='text-red'>Could not load currencies!</p>}
       {isConvertError && <p className='text-red'>Could not convert!</p>}
+
+      <ul>
+        {history.map(item => (
+          <li key={`item::${item.createdAt}`}>
+            from: {item.from}; to: {item.to}; amount: {item.amount}; convertedAmount: {item.convertedAmount}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
